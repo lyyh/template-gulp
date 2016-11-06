@@ -1,4 +1,4 @@
-define(function(require,exports,module) {
+define((require,exports,module) => {
     function fn(){
         console.log("this is the module a");
     }

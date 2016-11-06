@@ -1,23 +1,23 @@
-var gulp = require('gulp');
-var autoprefixer = require('gulp-autoprefixer');
-var concat = require('gulp-concat');
-var gulpif = require('gulp-if');
-var imagemin = require('gulp-imagemin');
-var htmlmin = require('gulp-htmlmin');
-var minifyHtml = require('gulp-minify-html');
-var revappend = require('gulp-rev-append');
-var rev = require('gulp-rev');
-var revCollector = require('gulp-rev-collector');
-var uglify = require('gulp-uglify');
-var connect = require('gulp-connect');
-var del = require("del");
-var less = require('gulp-less');
-var path = require('path');
-var plumber = require('gulp-plumber');
-var notify = require('gulp-notify');
-var babel = require('gulp-babel');
-var amdOptimize = require('amd-optimize');
-var rename = require('gulp-rename');
+var gulp = require('gulp'),
+  autoprefixer = require('gulp-autoprefixer'),
+  concat = require('gulp-concat'),
+  imagemin = require('gulp-imagemin'),
+  htmlmin = require('gulp-htmlmin'),
+  minifyHtml = require('gulp-minify-html'),
+  rev = require('gulp-rev'),
+  revCollector = require('gulp-rev-collector'),
+  uglify = require('gulp-uglify'),
+  connect = require('gulp-connect'),
+  del = require("del"),
+  less = require('gulp-less'),
+  path = require('path'),
+  plumber = require('gulp-plumber'),
+  notify = require('gulp-notify'),
+  babel = require('gulp-babel'),
+  amdOptimize = require('amd-optimize'),
+  rename = require('gulp-rename'),
+  runsequence = require('run-sequence');
+
 
 /*生产构建 begin*/
 // 处理CSS
@@ -28,19 +28,19 @@ gulp.task('css', function() {
 });
 
 //处理less
-gulp.task('less',function(){
-  return gulp.src('./src/**/*.less')
-    .pipe(less())
-    .pipe(autoprefixer({
-            browsers: ['last 2 versions','Firefox >= 20'],
-            cascade: true, //是否美化属性值 默认：true 像这样：
-            //-webkit-transform: rotate(45deg);
-            //        transform: rotate(45deg);
-            remove:true //是否去掉不必要的前缀 默认：true )
-     }))
-    .pipe(gulp.dest("dist"));
-})
-// 此处就不做CSS压缩的演示了，原理相同。
+gulp.task('less', function() {
+    return gulp.src('./src/**/*.less')
+      .pipe(less())
+      .pipe(autoprefixer({
+        browsers: ['last 2 versions', 'Firefox >= 20'],
+        cascade: true, //是否美化属性值 默认：true 像这样：
+        //-webkit-transform: rotate(45deg);
+        //        transform: rotate(45deg);
+        remove: true //是否去掉不必要的前缀 默认：true )
+      }))
+      .pipe(gulp.dest("dist"));
+  })
+  // 此处就不做CSS压缩的演示了，原理相同。
 
 // 压缩js
 gulp.task('script', function() {
@@ -70,7 +70,9 @@ gulp.task('html', function() {
 //处理es6
 gulp.task('convertjs', function() {
   return gulp.src('./src/**/*.es6')
-    .pipe(plumber({errorHandler: notify.onError('Error: <%= error.message %>')}))
+    .pipe(plumber({
+      errorHandler: notify.onError('Error: <%= error.message %>')
+    }))
     .pipe(babel({
       presets: ['es2015']
     }))
@@ -78,9 +80,9 @@ gulp.task('convertjs', function() {
 })
 
 // 生成hash文件名
-gulp.task('rev', ['css', "convertjs",'less', 'html'], function() {
+gulp.task('rev', ['css', "convertjs", 'less', 'html'], function() {
   // 其中加!前缀的是表示过滤该文件
-  return gulp.src(['./dist/**/*', '!**/*.html','!**/*.less','!**/*.es6'])
+  return gulp.src(['./dist/**/*', '!**/*.html', '!**/*.less', '!**/*.es6'])
     /* 转换成新的文件名 */
     .pipe(rev())
     .pipe(gulp.dest('./dist'))
@@ -109,7 +111,7 @@ gulp.task('clean', function() {
   del(['./rev/**', './dist/**']);
 })
 
-gulp.task('build', ['clean'],function(){
+gulp.task('build', ['clean'], function() {
   gulp.start('revCollector');
 });
 /*生产构建 end*/
@@ -127,12 +129,12 @@ gulp.task('devless', function() {
   return gulp.src('./src/**/*.less')
     .pipe(less())
     .pipe(autoprefixer({
-            browsers: ['last 2 versions','Firefox >= 20'],
-            cascade: true, //是否美化属性值 默认：true 像这样：
-            //-webkit-transform: rotate(45deg);
-            //        transform: rotate(45deg);
-            remove:true //是否去掉不必要的前缀 默认：true )
-     }))
+      browsers: ['last 2 versions', 'Firefox >= 20'],
+      cascade: true, //是否美化属性值 默认：true 像这样：
+      //-webkit-transform: rotate(45deg);
+      //        transform: rotate(45deg);
+      remove: true //是否去掉不必要的前缀 默认：true )
+    }))
     .pipe(gulp.dest("src"))
     .pipe(connect.reload());
 });
@@ -140,7 +142,9 @@ gulp.task('devless', function() {
 //开发过程中对es6进行转换
 gulp.task('devconvertjs', function() {
   return gulp.src('./src/**/*.es6')
-    .pipe(plumber({errorHandler: notify.onError('Error: <%= error.message %>')}))
+    .pipe(plumber({
+      errorHandler: notify.onError('Error: <%= error.message %>')
+    }))
     .pipe(babel({
       presets: ['es2015']
     }))
@@ -148,21 +152,16 @@ gulp.task('devconvertjs', function() {
     .pipe(connect.reload());
 })
 
-gulp.task('rjs', function () {  
-    return gulp.src(['./src/**/*.es6','./src/**/*.js'])  
-        .pipe(amdOptimize("main", {  
-            //require config  
-            paths: {  
-                "jquery": "./src/public/lib/js/jquery.min",
-                'a': './src/js/a' 
-            }  
-        }))  
-        .pipe(concat("app.js"))           //合并  
-        // .pipe(gulp.dest("dist/"))          //输出保存  
-        // .pipe(rename("index.min.js"))          //重命名  
-        // .pipe(uglify())                        //压缩  
-        .pipe(gulp.dest("dist/require"));         //输出保存  
-}); 
+//构建require
+gulp.task('rjs', function() {
+  return gulp.src(['src/**/*.js'])
+    .pipe(amdOptimize("src/js/requireConfig"))
+    .pipe(concat("app.js")) //合并  
+    // .pipe(gulp.dest("dist/"))          //输出保存  
+    // .pipe(rename("index.min.js"))          //重命名  
+    // .pipe(uglify())                        //压缩  
+    .pipe(gulp.dest("src/js")); //输出保存  
+});
 
 
 //启动gulp服务器
@@ -176,15 +175,17 @@ gulp.task('webserver', function() {
 
 //监听文件变化
 gulp.task('watch', function() {
-  gulp.watch(['./src/**'], ['devsrc']);
   gulp.watch(['./src/**/*.less'], ['devless']);
-  // gulp.watch(['./src/**/*.es6','./src/**/*.js'], ['devconvertjs']);
+  gulp.watch(['./src/**/*.es6'], ['devconvertjs']);
+  gulp.watch(['./src/**'], ['devsrc']);
 });
 
-//启动监听
-gulp.task('devbuild', ['rjs','devless'], function() {
-  gulp.start('watch');
-})
-
-gulp.task('dev', ['devbuild', "webserver"]);
-/*开发构建 end*/
+gulp.task('dev', function(callback) {
+    runsequence(['devconvertjs', 'devless'], //编译es6 less
+      'rjs', //构建require
+      'webserver', //启动服务器
+      'watch', //监听文件变化
+      callback
+    )
+  })
+  /*开发构建 end*/
